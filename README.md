@@ -1,6 +1,6 @@
 # 🛡️ NeurAudit Sentinel
 
-> **Inteligencia anti-corrupción en tiempo real para contratos públicos colombianos**
+> **Real-time anti-corruption intelligence for Colombian public contracts**
 
 [![Deploy](https://img.shields.io/badge/deploy-vercel-black?logo=vercel)](https://neuraudit-sentinel.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
@@ -9,79 +9,79 @@
 
 ---
 
-## 🌐 Demo en vivo
+## 🌐 Live Demo
 
 **👉 https://neuraudit-sentinel.vercel.app**
 
 ---
 
-## 🧠 ¿Qué es NeurAudit Sentinel?
+## 🧠 What is NeurAudit Sentinel?
 
-NeurAudit Sentinel es una plataforma SaaS de monitoreo continuo anti-corrupción diseñada para analizar, vigilar y alertar sobre el comportamiento contractual de entidades públicas colombianas.
+NeurAudit Sentinel is a continuous anti-corruption monitoring SaaS platform designed to analyze, watch, and alert on the contractual behavior of Colombian public entities.
 
-A diferencia de las herramientas reactivas tradicionales, Sentinel opera de forma **proactiva**: monitorea entidades en tiempo real, cruza datos de múltiples fuentes (SECOP II, Contraloría, Procuraduría) y genera alertas automáticas clasificadas por nivel de riesgo antes de que los problemas escalen.
+Unlike traditional reactive tools, Sentinel operates **proactively**: it monitors entities in real time, cross-references data from multiple sources (SECOP II, Contraloría, Procuraduría) and generates automatic alerts classified by risk level before problems escalate.
 
-Sentinel es el módulo de monitoreo continuo del ecosistema **NeurAudit AI**, complementando su capacidad de investigación puntual con vigilancia permanente.
-
----
-
-## 🎯 Problema que resuelve
-
-Colombia pierde aproximadamente **$50 billones de pesos anuales** en corrupción en contratación pública. Las herramientas actuales de control son:
-
-- ❌ Reactivas — detectan el problema después del daño
-- ❌ Fragmentadas — no cruzan fuentes de datos
-- ❌ Inaccesibles — solo para entidades gubernamentales grandes
-- ❌ Sin alertas — requieren búsqueda manual constante
-
-**NeurAudit Sentinel resuelve esto** con monitoreo automático, alertas en tiempo real y análisis de riesgo inteligente accesible para cualquier empresa u organización.
+Sentinel is the continuous monitoring module of the **NeurAudit AI** ecosystem, complementing its point-in-time investigation capability with permanent surveillance.
 
 ---
 
-## ✨ Funcionalidades
+## 🎯 Problem it solves
 
-### 📊 Dashboard Ejecutivo
-- KPIs en tiempo real: entidades monitoreadas, alertas activas, contratos en riesgo
-- Feed de alertas recientes con nivel de criticidad
-- Vista rápida de watchlist con últimas actividades
+Colombia loses approximately **$50 trillion COP per year** to corruption in public procurement. Current control tools are:
 
-### 👁️ Watchlist Inteligente
-- Agrega entidades públicas por nombre y NIT
-- Clasificación por tipo: empresa, persona, entidad territorial
-- Monitoreo persistente con historial de actividad
-- Búsqueda y filtrado por nivel de riesgo (ALTO / MEDIO / BAJO)
-- Eliminación y gestión de entidades monitoreadas
+- ❌ Reactive — they detect the problem after the damage is done
+- ❌ Fragmented — they don't cross-reference data sources
+- ❌ Inaccessible — only available to large government entities
+- ❌ No alerts — require constant manual searching
 
-### 🚨 Centro de Alertas
-- Alertas automáticas clasificadas por criticidad
-- Fuentes: SECOP II, Contraloría General, Procuraduría
-- Indicadores visuales con animación pulse para alertas críticas
-- Filtrado por nivel y fecha
-
-### 🔍 Módulo Investigar
-- Búsqueda libre de entidades y contratos
-- Análisis de riesgo por contrato
-- Integración con datos de SECOP II
-
-### ⚙️ Configuración
-- Gestión de preferencias de notificación
-- Configuración de umbrales de alerta
-- Integraciones con fuentes de datos
+**NeurAudit Sentinel solves this** with automatic monitoring, real-time alerts, and intelligent risk analysis accessible to any company or organization.
 
 ---
 
-## 🏗️ Arquitectura
+## ✨ Features
+
+### 📊 Executive Dashboard
+- Real-time KPIs: monitored entities, active alerts, contracts at risk
+- Recent alerts feed with criticality level
+- Quick watchlist view with latest activity
+
+### 👁️ Smart Watchlist
+- Add public entities by name and NIT
+- Classification by type: company, person, territorial entity
+- Persistent monitoring with activity history
+- Search and filter by risk level (HIGH / MEDIUM / LOW)
+- Entity deletion and management
+
+### 🚨 Alert Center
+- Automatic alerts classified by criticality
+- Sources: SECOP II, Contraloría General, Procuraduría
+- Visual indicators with pulse animation for critical alerts
+- Filter by level and date
+
+### 🔍 Investigate Module
+- Free search of entities and contracts
+- Risk analysis per contract
+- Integration with SECOP II data
+
+### ⚙️ Settings
+- Notification preference management
+- Alert threshold configuration
+- Data source integrations
+
+---
+
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   USUARIO                        │
+│                    USER                          │
 └─────────────────┬───────────────────────────────┘
                   │
 ┌─────────────────▼───────────────────────────────┐
 │          Next.js 16 App Router                   │
 │         (Server + Client Components)             │
 │                                                  │
-│  /dashboard  /watchlist  /alertas  /investigar  │
+│  /dashboard  /watchlist  /alerts  /investigate  │
 └─────────────────┬───────────────────────────────┘
                   │
 ┌─────────────────▼───────────────────────────────┐
@@ -96,67 +96,67 @@ Colombia pierde aproximadamente **$50 billones de pesos anuales** en corrupción
 ┌────▼────────┐      ┌────────▼────────┐
 │    Neon     │      │   AWS Aurora    │
 │ PostgreSQL  │      │     DSQL        │
-│ (principal) │      │  (escalabilidad)│
+│  (primary)  │      │  (scalability)  │
 └─────────────┘      └─────────────────┘
 ```
 
 ---
 
-## 🛠️ Stack tecnológico
+## 🛠️ Tech stack
 
-| Capa | Tecnología | Propósito |
-|------|-----------|-----------|
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
 | Frontend | Next.js 16, React 19 | App Router, Server Components |
-| Estilos | Tailwind CSS v4 | Design system completo |
-| UI | v0.dev + Lucide Icons | Componentes SOC-style |
+| Styles | Tailwind CSS v4 | Complete design system |
+| UI | v0.dev + Lucide Icons | SOC-style components |
 | Backend | Next.js API Routes | Serverless functions |
-| Base de datos | Neon PostgreSQL | Persistencia principal |
-| Cloud DB | AWS Aurora DSQL | Escalabilidad enterprise |
-| Hosting | Vercel | Deploy automático |
-| Animaciones | tw-animate-css | Micro-interacciones |
+| Database | Neon PostgreSQL | Primary persistence |
+| Cloud DB | AWS Aurora DSQL | Enterprise scalability |
+| Hosting | Vercel | Automatic deployment |
+| Animations | tw-animate-css | Micro-interactions |
 
 ---
 
-## ⚙️ Instalación y setup
+## ⚙️ Installation & setup
 
-### Prerequisitos
+### Prerequisites
 
 - Node.js 22+
 - npm
-- Cuenta en [Neon](https://neon.tech) (gratis)
+- [Neon](https://neon.tech) account (free)
 
-### 1. Clonar el repositorio
+### 1. Clone the repository
 
     git clone https://github.com/VIVIANAPLATA16/neuraudit-sentinel
     cd neuraudit-sentinel
 
-### 2. Instalar dependencias
+### 2. Install dependencies
 
     npm install
 
-### 3. Variables de entorno
+### 3. Environment variables
 
-Crea un archivo `.env.local` en la raíz:
+Create a `.env.local` file in the root:
 
-    DATABASE_URL=postgresql://usuario:password@host.neon.tech/neondb?sslmode=require
+    DATABASE_URL=postgresql://user:password@host.neon.tech/neondb?sslmode=require
 
-### 4. Inicializar base de datos
+### 4. Initialize database
 
-Con el servidor corriendo, visita:
+With the server running, visit:
 
     http://localhost:3000/api/setup
 
-### 5. Ejecutar en desarrollo
+### 5. Run in development
 
     npm run dev
 
-Abre http://localhost:3001
+Open http://localhost:3001
 
 ---
 
-## 📊 Schema de base de datos
+## 📊 Database schema
 
-    -- Entidades bajo monitoreo
+    -- Monitored entities
     CREATE TABLE watchlists (
       id          SERIAL PRIMARY KEY,
       nombre      TEXT NOT NULL,
@@ -166,7 +166,7 @@ Abre http://localhost:3001
       created_at  TIMESTAMP DEFAULT NOW()
     );
 
-    -- Alertas generadas por el sistema
+    -- System-generated alerts
     CREATE TABLE alerts (
       id           SERIAL PRIMARY KEY,
       watchlist_id INTEGER REFERENCES watchlists(id) ON DELETE CASCADE,
@@ -177,7 +177,7 @@ Abre http://localhost:3001
       created_at   TIMESTAMP DEFAULT NOW()
     );
 
-    -- Historial de investigaciones
+    -- Investigation history
     CREATE TABLE investigations (
       id           SERIAL PRIMARY KEY,
       watchlist_id INTEGER REFERENCES watchlists(id) ON DELETE CASCADE,
@@ -188,86 +188,85 @@ Abre http://localhost:3001
 
 ---
 
-## 📁 Estructura del proyecto
+## 📁 Project structure
 
     neuraudit-sentinel/
     ├── src/
     │   ├── app/
-    │   │   ├── page.tsx                    # Dashboard principal
-    │   │   ├── layout.tsx                  # Layout global + sidebar
+    │   │   ├── page.tsx                    # Main dashboard
+    │   │   ├── layout.tsx                  # Global layout + sidebar
     │   │   ├── globals.css                 # Design tokens + Tailwind v4
     │   │   ├── watchlist/
-    │   │   │   └── page.tsx                # Gestión de entidades (con DB real)
+    │   │   │   └── page.tsx                # Entity management (live DB)
     │   │   ├── alertas/
-    │   │   │   └── page.tsx                # Centro de alertas
+    │   │   │   └── page.tsx                # Alert center
     │   │   ├── investigar/
-    │   │   │   └── page.tsx                # Búsqueda y análisis
+    │   │   │   └── page.tsx                # Search and analysis
     │   │   ├── configuracion/
-    │   │   │   └── page.tsx                # Configuración
+    │   │   │   └── page.tsx                # Settings
     │   │   └── api/
     │   │       ├── watchlist/
-    │   │       │   ├── route.ts            # GET + POST entidades
-    │   │       │   └── [id]/route.ts       # DELETE entidad
-    │   │       ├── setup/route.ts          # Inicializar tablas
+    │   │       │   ├── route.ts            # GET + POST entities
+    │   │       │   └── [id]/route.ts       # DELETE entity
+    │   │       ├── setup/route.ts          # Initialize tables
     │   │       └── test-db/route.ts        # Health check
     │   ├── components/
-    │   │   ├── app-shell.tsx               # Shell principal + navegación
-    │   │   ├── sidebar.tsx                 # Sidebar con nav activa
-    │   │   ├── risk-badge.tsx              # Badge ALTO/MEDIO/BAJO
-    │   │   ├── alert-feed.tsx              # Feed de alertas
-    │   │   ├── kpi-card.tsx                # Tarjetas de métricas
-    │   │   ├── entity-card.tsx             # Card de entidad
-    │   │   ├── page-header.tsx             # Header de página
-    │   │   ├── empty-state.tsx             # Estado vacío
-    │   │   └── risk-gauge.tsx              # Gauge de riesgo
+    │   │   ├── app-shell.tsx               # Main shell + navigation
+    │   │   ├── sidebar.tsx                 # Sidebar with active nav
+    │   │   ├── risk-badge.tsx              # HIGH/MEDIUM/LOW badge
+    │   │   ├── alert-feed.tsx              # Alert feed
+    │   │   ├── kpi-card.tsx                # Metric cards
+    │   │   ├── entity-card.tsx             # Entity card
+    │   │   ├── page-header.tsx             # Page header
+    │   │   ├── empty-state.tsx             # Empty state
+    │   │   └── risk-gauge.tsx              # Risk gauge
     │   └── lib/
-    │       ├── db.ts                       # Conexión Neon PostgreSQL
-    │       ├── data.ts                     # Tipos TypeScript
+    │       ├── db.ts                       # Neon PostgreSQL connection
+    │       ├── data.ts                     # TypeScript types
     │       └── utils.ts                    # cn() helper
-    ├── .env.local                          # Variables de entorno (no commitear)
+    ├── .env.local                          # Environment variables (do not commit)
     ├── next.config.mjs
-    ├── tailwind.config.ts
     └── package.json
 
 ---
 
-## 🚀 Deploy en Vercel
+## 🚀 Deploy on Vercel
 
     npm install -g vercel
     vercel
 
-Agrega las variables de entorno en el dashboard de Vercel:
-- `DATABASE_URL` — connection string de Neon
+Add environment variables in the Vercel dashboard:
+- `DATABASE_URL` — Neon connection string
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Dashboard con KPIs en tiempo real
-- [x] Watchlist conectada a base de datos
-- [x] CRUD completo de entidades
-- [x] Sistema de alertas con niveles de riesgo
-- [ ] Integración API SECOP II en tiempo real
-- [ ] Alertas automáticas por webhook
-- [ ] Módulo de IA para scoring de riesgo
-- [ ] Exportación de reportes PDF
-- [ ] Notificaciones por email/Slack
+- [x] Dashboard with real-time KPIs
+- [x] Watchlist connected to database
+- [x] Full CRUD for entities
+- [x] Alert system with risk levels
+- [ ] Real-time SECOP II API integration
+- [ ] Automatic alerts via webhook
+- [ ] AI module for risk scoring
+- [ ] PDF report export
+- [ ] Email/Slack notifications
 
 ---
 
-## 🤝 Parte del ecosistema NeurAudit
+## 🤝 Part of the NeurAudit Ecosystem
 
-| Producto | Descripción | URL |
+| Product | Description | URL |
 |---------|-------------|-----|
-| **NeurAudit AI** | Investigación puntual con IA | [neuraudit-web...run.app](https://neuraudit-web-986541948066.us-central1.run.app/) |
-| **NeurAudit Sentinel** | Monitoreo continuo + alertas | [neuraudit-sentinel.vercel.app](https://neuraudit-sentinel.vercel.app) |
+| **NeurAudit AI** | Point-in-time investigation with AI | [neuraudit-web...run.app](https://neuraudit-web-986541948066.us-central1.run.app/) |
+| **NeurAudit Sentinel** | Continuous monitoring + alerts | [neuraudit-sentinel.vercel.app](https://neuraudit-sentinel.vercel.app) |
 
 ---
 
-## 📄 Licencia
+## 📄 License
 
 MIT © 2026 Viviana Plata
 
 ---
 
-*Construido para la hackathon H0 — AWS + Vercel + Neon 2026*
+*Built for H0 Hackathon — AWS + Vercel + Neon 2026*
