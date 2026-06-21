@@ -1,205 +1,172 @@
 'use client'
-
-import { useMemo, useState } from 'react'
-import {
-  Bell,
-  ChevronDown,
-  Building2,
-  Calendar,
-  Database,
-  BellOff,
-} from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Bell, Plus, Trash2, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/page-header'
 import { RiskBadge } from '@/components/risk-badge'
 import { EmptyState } from '@/components/empty-state'
-import { alerts, type RiskLevel, type Source } from '@/lib/data'
+import type { RiskLevel } from '@/lib/data'
 
-const levelFilters: ('TODOS' | RiskLevel)[] = ['TODOS', 'ALTO', 'MEDIO', 'BAJO']
-const sourceFilters: ('TODAS' | Source)[] = [
-  'TODAS',
-  'SECOP',
-  'Contraloría',
-  'Procuraduría',
-]
+interface Alert {
+  id: number
+  watchlist_id: number | null
+  titulo: string
+  descripcion: string
+  nivel: string
+  fuente: string
+  entidad_nombre: string | null
+  created_at: string
+}
+
+interface Entity {
+  id: number
+  nombre: string
+}
+
+const filters: ('TODOS' | RiskLevel)[] = ['TODOS', 'ALTO', 'MEDIO', 'BAJO']
 
 export default function AlertasPage() {
-  const [level, setLevel] = useState<'TODOS' | RiskLevel>('TODOS')
-  const [source, setSource] = useState<'TODAS' | Source>('TODAS')
-  const [expanded, setExpanded] = useState<string | null>(alerts[0]?.id ?? null)
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [entities, setEntities] = useState<Entity[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<'TODOS' | RiskLevel>('TODOS')
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ watchlist_id: '', titulo: '', descripcion: '', nivel: 'medio', fuente: 'SECOP' })
+  const [saving, setSaving] = useState(false)
 
-  const filtered = useMemo(() => {
-    return alerts.filter((a) => {
-      const matchesLevel = level === 'TODOS' || a.nivel === level
-      const matchesSource = source === 'TODAS' || a.fuente === source
-      return matchesLevel && matchesSource
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/alerts').then(r => r.json()),
+      fetch('/api/watchlist').then(r => r.json()),
+    ]).then(([a, w]) => {
+      if (a.success) setAlerts(a.data)
+      if (w.success) setEntities(w.data)
+    }).finally(() => setLoading(false))
+  }, [])
+
+  const filtered = alerts.filter(a =>
+    filter === 'TODOS' || a.nivel?.toUpperCase() === filter
+  )
+
+  async function handleAdd() {
+    if (!form.titulo) return
+    setSaving(true)
+    const res = await fetch('/api/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, watchlist_id: form.watchlist_id || null }),
     })
-  }, [level, source])
+    const data = await res.json()
+    if (data.success) {
+      setAlerts(prev => [data.data, ...prev])
+      setForm({ watchlist_id: '', titulo: '', descripcion: '', nivel: 'medio', fuente: 'SECOP' })
+      setOpen(false)
+    }
+    setSaving(false)
+  }
+
+  async function handleDelete(id: number) {
+    await fetch('/api/alerts/' + id, { method: 'DELETE' })
+    setAlerts(prev => prev.filter(a => a.id !== id))
+  }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div className="space-y-6">
       <PageHeader
-        icon={<Bell className="size-5" />}
         title="Alertas"
-        subtitle="Detecciones del motor de IA sobre contratación pública"
+        subtitle="Centro de alertas de riesgo en tiempo real"
+        icon={<Bell className="size-5" />}
+        action={
+          <button onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">
+            <Plus className="size-4" /> Nueva alerta
+          </button>
+        }
       />
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4">
-        <FilterRow label="Nivel">
-          {levelFilters.map((f) => (
-            <FilterChip
-              key={f}
-              active={level === f}
-              onClick={() => setLevel(f)}
-            >
-              {f}
-            </FilterChip>
-          ))}
-        </FilterRow>
-        <FilterRow label="Fuente">
-          {sourceFilters.map((f) => (
-            <FilterChip
-              key={f}
-              active={source === f}
-              onClick={() => setSource(f)}
-            >
-              {f}
-            </FilterChip>
-          ))}
-        </FilterRow>
+      <div className="flex gap-2">
+        {filters.map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={cn('rounded-lg border px-3 py-2 text-xs font-semibold',
+              filter === f ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground')}>
+            {f}
+          </button>
+        ))}
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={BellOff}
-          title="Sin alertas"
-          description="No hay alertas que coincidan con los filtros seleccionados. Ajusta el nivel o la fuente para ver más resultados."
-        />
+      {loading ? (
+        <div className="text-center text-muted-foreground py-12">Cargando...</div>
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={AlertTriangle} title="Sin alertas" description="No hay alertas para este nivel de riesgo" />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {filtered.map((alert) => {
-            const isOpen = expanded === alert.id
-            return (
-              <li
-                key={alert.id}
-                className={cn(
-                  'rounded-lg border bg-card transition-colors',
-                  alert.nivel === 'ALTO'
-                    ? 'border-risk-high/30'
-                    : 'border-border',
-                  alert.nivel === 'ALTO' && isOpen && 'glow-critical',
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => setExpanded(isOpen ? null : alert.id)}
-                  className="flex w-full items-start gap-3 px-4 py-4 text-left"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <RiskBadge level={alert.nivel} />
-                      <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                        {alert.fuente}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm font-semibold leading-snug text-pretty">
-                      {alert.titulo}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {alert.entidad}
-                    </p>
-                  </div>
-                  <ChevronDown
-                    className={cn(
-                      'mt-1 size-4 shrink-0 text-muted-foreground transition-transform',
-                      isOpen && 'rotate-180',
+        <div className="space-y-3">
+          {filtered.map(a => (
+            <div key={a.id} className={cn(
+              'rounded-xl border bg-card px-4 py-2 mx-2 transition-all hover:scale-[1.01]',
+              a.nivel === 'alto' ? 'border-risk-high/40 shadow-risk-high/10 shadow-md' :
+              a.nivel === 'medio' ? 'border-yellow-500/30' : 'border-border'
+            )}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <RiskBadge level={a.nivel?.toUpperCase() as RiskLevel} />
+                    <span className="text-xs text-muted-foreground font-mono">{a.fuente}</span>
+                    {a.entidad_nombre && (
+                      <span className="text-xs text-muted-foreground">· {a.entidad_nombre}</span>
                     )}
-                  />
-                </button>
-
-                {isOpen ? (
-                  <div className="border-t border-border px-4 py-4">
-                    <p className="text-sm text-foreground/90 text-pretty">
-                      {alert.descripcion}
-                    </p>
-                    <p className="mt-4 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                      Indicadores detectados
-                    </p>
-                    <ul className="mt-2 flex flex-col gap-1.5">
-                      {alert.detalle.map((d, i) => (
-                        <li
-                          key={i}
-                          className="flex items-start gap-2 text-sm text-foreground/80"
-                        >
-                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-risk-high" />
-                          {d}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-3 font-mono text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Building2 className="size-3.5" />
-                        {alert.entidad}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Database className="size-3.5" />
-                        {alert.fuente}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Calendar className="size-3.5" />
-                        {alert.fecha}
-                      </span>
-                    </div>
                   </div>
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
+                  <p className="font-semibold text-sm leading-tight">{a.titulo}</p>
+                  {a.descripcion && <p className="text-xs text-muted-foreground mt-1">{a.descripcion}</p>}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {new Date(a.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                <button onClick={() => handleDelete(a.id)} className="text-muted-foreground hover:text-red-500 mt-1">
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Nueva alerta</h2>
+            <input placeholder="Título *" value={form.titulo}
+              onChange={e => setForm(p => ({...p, titulo: e.target.value}))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+            <select value={form.watchlist_id} onChange={e => setForm(p => ({...p, watchlist_id: e.target.value}))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
+              <option value="">Sin entidad asociada</option>
+              {entities.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+            </select>
+            <select value={form.nivel} onChange={e => setForm(p => ({...p, nivel: e.target.value}))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
+              <option value="alto">ALTO</option>
+              <option value="medio">MEDIO</option>
+              <option value="bajo">BAJO</option>
+            </select>
+            <select value={form.fuente} onChange={e => setForm(p => ({...p, fuente: e.target.value}))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
+              <option value="SECOP">SECOP</option>
+              <option value="Contraloría">Contraloría</option>
+              <option value="Procuraduría">Procuraduría</option>
+            </select>
+            <textarea placeholder="Descripción" value={form.descripcion}
+              onChange={e => setForm(p => ({...p, descripcion: e.target.value}))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" rows={3} />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-muted-foreground">Cancelar</button>
+              <button onClick={handleAdd} disabled={saving}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
-  )
-}
-
-function FilterRow({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <span className="w-16 font-mono text-xs uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
-    </div>
-  )
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-md border px-3 py-1.5 font-mono text-xs font-medium transition-colors',
-        active
-          ? 'border-primary/40 bg-primary/10 text-primary'
-          : 'border-border text-muted-foreground hover:text-foreground',
-      )}
-    >
-      {children}
-    </button>
   )
 }
