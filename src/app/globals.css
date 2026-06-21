@@ -4,24 +4,48 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #0a0a0f;
-  --foreground: #ffffff;
-  --card: #0f0f1a;
-  --border: #1e1b4b;
-  --primary: #7c3aed;
-  --primary-foreground: #ffffff;
-  --muted: #94a3b8;
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 47.4% 11.2%;
+  --card-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --primary: 263.4 70% 50.4%;
+  --primary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
   --radius: 0.5rem;
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-border: hsl(var(--border));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  border-color: hsl(var(--border));
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+@theme inline {
+  --color-risk-high: #ef4444;
+  --color-risk-medium: #f59e0b;
+  --color-risk-low: #22c55e;
 }
