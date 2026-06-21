@@ -1,65 +1,159 @@
-import Image from "next/image";
+import Link from 'next/link'
+import {
+  Building2,
+  Bell,
+  FileWarning,
+  Banknote,
+  ShieldCheck,
+  ArrowRight,
+} from 'lucide-react'
+import { PageHeader } from '@/components/page-header'
+import { KpiCard } from '@/components/kpi-card'
+import { RiskGauge } from '@/components/risk-gauge'
+import { AlertFeed } from '@/components/alert-feed'
+import { RiskBadge } from '@/components/risk-badge'
+import { alerts, entities, kpis, formatCOP } from '@/lib/data'
 
-export default function Home() {
+export default function DashboardPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="soc-grid min-h-full">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
+        <PageHeader
+          icon={<ShieldCheck className="size-5" />}
+          title="NeurAudit Sentinel"
+          subtitle="Inteligencia anti-corrupción en tiempo real"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        {/* KPIs */}
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard
+            label="Entidades monitoreadas"
+            value={kpis.entidadesMonitoreadas.toString()}
+            icon={Building2}
+            trend="+12 este mes"
+          />
+          <KpiCard
+            label="Alertas activas"
+            value={kpis.alertasActivas.toString()}
+            icon={Bell}
+            trend="+8 en 24h"
+            accent="high"
+          />
+          <KpiCard
+            label="Contratos en riesgo"
+            value={kpis.contratosEnRiesgo.toString()}
+            icon={FileWarning}
+            trend="Requieren revisión"
+            accent="medium"
+          />
+          <KpiCard
+            label="Valor en riesgo (COP)"
+            value={formatCOP(kpis.valorEnRiesgo)}
+            icon={Banknote}
+            trend="Acumulado vigente"
+            accent="high"
+          />
+        </section>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Risk gauge */}
+          <section className="rounded-lg border border-border bg-card p-6">
+            <h2 className="text-sm font-semibold">Índice de riesgo global</h2>
+            <p className="text-xs text-muted-foreground">
+              Score agregado de las entidades vigiladas
+            </p>
+            <div className="mt-2 flex items-center justify-center">
+              <RiskGauge score={kpis.riskScoreGlobal} />
+            </div>
+            <div className="grid grid-cols-3 gap-2 border-t border-border pt-4 text-center">
+              <div>
+                <p className="font-mono text-lg font-bold text-risk-high">14</p>
+                <p className="text-[10px] text-muted-foreground">ALTO</p>
+              </div>
+              <div>
+                <p className="font-mono text-lg font-bold text-risk-medium">
+                  29
+                </p>
+                <p className="text-[10px] text-muted-foreground">MEDIO</p>
+              </div>
+              <div>
+                <p className="font-mono text-lg font-bold text-risk-low">205</p>
+                <p className="text-[10px] text-muted-foreground">BAJO</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Alert feed */}
+          <section className="rounded-lg border border-border bg-card lg:col-span-2">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+              <div>
+                <h2 className="text-sm font-semibold">Alertas recientes</h2>
+                <p className="text-xs text-muted-foreground">
+                  Detecciones del motor de IA
+                </p>
+              </div>
+              <Link
+                href="/alertas"
+                className="inline-flex items-center gap-1 font-mono text-xs text-primary hover:underline"
+              >
+                Ver todas <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+            <AlertFeed items={alerts.slice(0, 5)} />
+          </section>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* Watchlist */}
+        <section className="rounded-lg border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+            <div>
+              <h2 className="text-sm font-semibold">Watchlist</h2>
+              <p className="text-xs text-muted-foreground">
+                Entidades bajo vigilancia activa
+              </p>
+            </div>
+            <Link
+              href="/watchlist"
+              className="inline-flex items-center gap-1 font-mono text-xs text-primary hover:underline"
+            >
+              Gestionar <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Entidad</th>
+                  <th className="px-4 py-3 font-medium">NIT</th>
+                  <th className="px-4 py-3 font-medium">Tipo</th>
+                  <th className="px-4 py-3 font-medium">Riesgo</th>
+                  <th className="px-4 py-3 font-medium">Última actividad</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entities.map((e) => (
+                  <tr
+                    key={e.id}
+                    className="border-b border-border last:border-b-0 transition-colors hover:bg-secondary/40"
+                  >
+                    <td className="px-4 py-3 font-medium">{e.nombre}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {e.nit}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{e.tipo}</td>
+                    <td className="px-4 py-3">
+                      <RiskBadge level={e.riesgo} />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {e.ultimaAlerta}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
-  );
+  )
 }
