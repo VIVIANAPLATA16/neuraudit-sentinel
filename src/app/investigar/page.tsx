@@ -1,214 +1,249 @@
 'use client'
-
-import { useMemo, useState } from 'react'
-import {
-  Search,
-  Sparkles,
-  Building2,
-  UserRound,
-  Banknote,
-  Flag,
-  Loader2,
-  FileSearch,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState } from 'react'
+import { Search, Building2 } from 'lucide-react'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { PageHeader } from '@/components/page-header'
 import { RiskBadge } from '@/components/risk-badge'
 import { EmptyState } from '@/components/empty-state'
-import { contractResults, formatCOP, type ContractResult } from '@/lib/data'
+import type { RiskLevel } from '@/lib/data'
 
-export default function InvestigarPage() {
-  const [query, setQuery] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-
-  const results = useMemo(() => {
-    if (!submitted) return contractResults
-    const q = query.toLowerCase()
-    return contractResults.filter(
-      (c) =>
-        c.objeto.toLowerCase().includes(q) ||
-        c.entidad.toLowerCase().includes(q) ||
-        c.contratista.toLowerCase().includes(q),
-    )
-  }, [query, submitted])
-
-  return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        icon={<FileSearch className="size-5" />}
-        title="Investigar"
-        subtitle="Explora contratos y entidades con análisis de riesgo asistido por IA"
-      />
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          setSubmitted(true)
-        }}
-        className="relative"
-      >
-        <Search className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar entidad o contrato..."
-          className="w-full rounded-lg border border-border bg-card py-3.5 pl-12 pr-28 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
-        />
-        <button
-          type="submit"
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-        >
-          Buscar
-        </button>
-      </form>
-
-      <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
-        <span>
-          {results.length} contrato{results.length === 1 ? '' : 's'} encontrado
-          {results.length === 1 ? '' : 's'}
-        </span>
-        <span>Fuente: SECOP II</span>
-      </div>
-
-      {results.length === 0 ? (
-        <EmptyState
-          icon={FileSearch}
-          title="Sin coincidencias"
-          description="No encontramos contratos para tu búsqueda. Intenta con el nombre de la entidad, el contratista o el objeto contractual."
-        />
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {results.map((c) => (
-            <ContractCard key={c.id} contract={c} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
+interface Contrato {
+  nombre_entidad?: string
+  descripcion_del_proceso?: string
+  valor_del_contrato?: string
+  estado_contrato?: string
+  tipo_de_contrato?: string
+  departamento?: string
+  municipio?: string
 }
 
-function ContractCard({ contract }: { contract: ContractResult }) {
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState<string | null>(null)
+function getRiskLevel(c: Contrato): RiskLevel {
+  const v = Number(c.valor_del_contrato || 0)
+  if (v > 1000000000) return 'ALTO'
+  if (v > 100000000) return 'MEDIO'
+  return 'BAJO'
+}
 
-  function runAnalysis() {
-    setAnalyzing(true)
-    setAnalysis(null)
-    setTimeout(() => {
-      setAnalyzing(false)
-      setAnalysis(
-        `El modelo asigna un score de ${contract.riskScore}/100 a este contrato. Se identificaron ${contract.banderas.length} indicador(es) de riesgo, con énfasis en "${contract.banderas[0]}". Se recomienda revisión documental y cruce con antecedentes del contratista.`,
-      )
-    }, 1400)
+function formatCOP(value: string | number | undefined) {
+  if (!value || value === '0') return '—'
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(value))
+}
+
+const COLORS = { ALTO: '#ef4444', MEDIO: '#f59e0b', BAJO: '#22c55e' }
+
+const DEPARTAMENTOS: Record<string, [number, number]> = {
+  'CUNDINAMARCA': [4.6, -74.1], 'BOGOTA': [4.7, -74.07], 'ANTIOQUIA': [6.25, -75.56],
+  'VALLE DEL CAUCA': [3.45, -76.53], 'SANTANDER': [6.64, -73.13], 'BOLIVAR': [9.0, -74.0],
+  'ATLANTICO': [10.96, -74.81], 'NARIÑO': [1.21, -77.28], 'TOLIMA': [4.09, -75.15],
+  'HUILA': [2.53, -75.52], 'CAUCA': [2.7, -76.82], 'CORDOBA': [8.76, -75.88],
+  'MAGDALENA': [10.47, -74.25], 'META': [4.15, -73.63], 'RISARALDA': [4.81, -75.69],
+  'CALDAS': [5.29, -75.04], 'CESAR': [9.33, -73.37], 'BOYACA': [5.45, -73.36],
+  'NORTE DE SANTANDER': [7.89, -72.5], 'QUINDIO': [4.53, -75.68],
+  'SUCRE': [9.3, -75.4], 'PUTUMAYO': [0.86, -76.65], 'ARAUCA': [7.08, -70.76],
+  'CASANARE': [5.75, -72.0], 'GUAJIRA': [11.35, -72.53], 'CHOCO': [5.69, -76.65],
+  'VAUPES': [1.25, -70.23], 'GUAVIARE': [2.57, -72.65], 'VICHADA': [4.42, -69.29],
+  'AMAZONAS': [-1.44, -71.57], 'CAQUETA': [1.61, -75.61], 'GUAINIA': [2.58, -68.53],
+}
+
+function getDeptoFromEntity(nombre: string): string {
+  const n = nombre.toUpperCase()
+  for (const dep of Object.keys(DEPARTAMENTOS)) {
+    if (n.includes(dep)) return dep
+  }
+  if (n.includes('BOGOTA') || n.includes('BOGOTÁ') || n.includes('SEDE NACIONAL')) return 'BOGOTA'
+  return ''
+}
+
+const PAGE_SIZE = 15
+
+export default function InvestigarPage() {
+  const [q, setQ] = useState('')
+  const [all, setAll] = useState<Contrato[]>([])
+  const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const [page, setPage] = useState(1)
+
+  async function handleSearch(query?: string) {
+    const term = query || q
+    if (!term.trim()) return
+    if (query) setQ(query)
+    setLoading(true)
+    setSearched(true)
+    setPage(1)
+    const res = await fetch('/api/investigar?q=' + encodeURIComponent(term))
+    const data = await res.json()
+    if (data.success) {
+      const sorted = data.data.sort((a: Contrato, b: Contrato) => {
+        const order: Record<RiskLevel, number> = { ALTO: 0, MEDIO: 1, BAJO: 2 }
+        return order[getRiskLevel(a)] - order[getRiskLevel(b)]
+      })
+      setAll(sorted)
+    }
+    setLoading(false)
   }
 
-  const scoreColor =
-    contract.riesgo === 'ALTO'
-      ? 'text-risk-high'
-      : contract.riesgo === 'MEDIO'
-        ? 'text-risk-medium'
-        : 'text-risk-low'
+  const alto = all.filter(c => getRiskLevel(c) === 'ALTO')
+  const medio = all.filter(c => getRiskLevel(c) === 'MEDIO')
+  const bajo = all.filter(c => getRiskLevel(c) === 'BAJO')
+  const totalRiesgo = alto.reduce((s, c) => s + Number(c.valor_del_contrato || 0), 0)
+
+  const donaData = [
+    { name: 'ALTO', value: alto.length },
+    { name: 'MEDIO', value: medio.length },
+    { name: 'BAJO', value: bajo.length },
+  ].filter(d => d.value > 0)
+
+  const deptoMap: Record<string, { alto: number, medio: number, bajo: number, total: number }> = {}
+  all.forEach(c => {
+    const dep = getDeptoFromEntity(c.nombre_entidad || '')
+    if (!dep) return
+    if (!deptoMap[dep]) deptoMap[dep] = { alto: 0, medio: 0, bajo: 0, total: 0 }
+    const risk = getRiskLevel(c)
+    deptoMap[dep][risk.toLowerCase() as 'alto' | 'medio' | 'bajo']++
+    deptoMap[dep].total++
+  })
+
+  const visible = all.slice(0, page * PAGE_SIZE)
 
   return (
-    <article
-      className={cn(
-        'rounded-lg border bg-card p-5 transition-colors',
-        contract.riesgo === 'ALTO'
-          ? 'border-risk-high/30'
-          : 'border-border hover:border-primary/30',
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-sm font-semibold leading-snug text-pretty">
-          {contract.objeto}
-        </h3>
-        <RiskBadge level={contract.riesgo} />
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="Investigar"
+        subtitle="Contratos públicos en tiempo real — SECOP II"
+        icon={<Search className="size-5" />}
+      />
 
-      <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-        <Meta icon={Building2} label="Entidad" value={contract.entidad} />
-        <Meta icon={UserRound} label="Contratista" value={contract.contratista} />
-        <Meta
-          icon={Banknote}
-          label="Valor"
-          value={formatCOP(contract.valor)}
-          mono
-        />
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-            Score
-          </span>
-          <span className={cn('font-mono text-sm font-bold', scoreColor)}>
-            {contract.riskScore}/100
-          </span>
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={e => setQ(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            placeholder="Buscar entidad en SECOP II..."
+            className="w-full rounded-lg border border-border bg-card py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary" />
         </div>
+        <button onClick={() => handleSearch()} disabled={loading}
+          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+          {loading ? 'Buscando...' : 'Analizar →'}
+        </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-1.5">
-        {contract.banderas.map((b) => (
-          <span
-            key={b}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-          >
-            <Flag className="size-3" />
-            {b}
-          </span>
+      <div className="flex gap-2 flex-wrap">
+        {['ICBF', 'Min. Transporte', 'Alcaldía Medellín', 'UNGRD', 'Invías'].map(e => (
+          <button key={e} onClick={() => handleSearch(e)}
+            className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+            {e}
+          </button>
         ))}
       </div>
 
-      <div className="mt-4 border-t border-border pt-4">
-        <button
-          type="button"
-          onClick={runAnalysis}
-          disabled={analyzing}
-          className="inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-3.5 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-70"
-        >
-          {analyzing ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Sparkles className="size-4" />
-          )}
-          {analyzing ? 'Analizando...' : 'Análisis con IA'}
-        </button>
+      {loading && <div className="text-center text-muted-foreground py-12">Consultando SECOP II...</div>}
 
-        {analysis ? (
-          <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3">
-            <p className="flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary">
-              <Sparkles className="size-3.5" />
-              Análisis NeurAudit
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-foreground/90 text-pretty">
-              {analysis}
-            </p>
+      {!loading && searched && all.length === 0 && (
+        <EmptyState icon={Building2} title="Sin resultados" description="No se encontraron contratos" />
+      )}
+
+      {!loading && all.length > 0 && (
+        <>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { label: 'Riesgo ALTO', value: alto.length, color: 'text-risk-high', border: 'border-risk-high/30', bg: 'bg-risk-high/5' },
+              { label: 'Riesgo MEDIO', value: medio.length, color: 'text-yellow-500', border: 'border-yellow-500/30', bg: 'bg-yellow-500/5' },
+              { label: 'Riesgo BAJO', value: bajo.length, color: 'text-risk-low', border: 'border-risk-low/30', bg: 'bg-risk-low/5' },
+              { label: 'Valor en riesgo', value: formatCOP(totalRiesgo), color: 'text-primary', border: 'border-primary/30', bg: 'bg-primary/5' },
+            ].map(({ label, value, color, border, bg }) => (
+              <div key={label} className={`rounded-xl border ${border} ${bg} px-4 py-3`}>
+                <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                <p className={`text-xl font-bold ${color}`}>{value}</p>
+              </div>
+            ))}
           </div>
-        ) : null}
-      </div>
-    </article>
-  )
-}
 
-function Meta({
-  icon: Icon,
-  label,
-  value,
-  mono,
-}: {
-  icon: typeof Building2
-  label: string
-  value: string
-  mono?: boolean
-}) {
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={cn('truncate text-sm text-foreground/90', mono && 'font-mono')}
-      >
-        {value}
-      </span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <h3 className="text-sm font-semibold mb-3">Distribución por nivel de riesgo</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={donaData} cx="50%" cy="50%" innerRadius={60} outerRadius={90}
+                    paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    labelLine={false}>
+                    {donaData.map((entry) => (
+                      <Cell key={entry.name} fill={COLORS[entry.name as RiskLevel]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => [`${v} contratos`]} contentStyle={{ background: '#0f0f1a', border: '1px solid #1e1b4b', borderRadius: 8 }} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-4">
+              <h3 className="text-sm font-semibold mb-3">Distribución por departamento</h3>
+              <div className="relative w-full h-[220px] bg-[#060610] rounded-lg overflow-hidden">
+                <svg viewBox="0 0 400 500" className="w-full h-full">
+                  <rect width="400" height="500" fill="#060610" />
+                  {Object.entries(deptoMap).map(([dep, info]) => {
+                    const coords = DEPARTAMENTOS[dep]
+                    if (!coords) return null
+                    const x = ((coords[1] + 82) / 18) * 400
+                    const y = ((8 - coords[0]) / 16) * 500
+                    const color = info.alto > 0 ? '#ef4444' : info.medio > 0 ? '#f59e0b' : '#22c55e'
+                    const r = Math.min(4 + info.total * 1.5, 20)
+                    return (
+                      <g key={dep}>
+                        <circle cx={x} cy={y} r={r} fill={color} opacity={0.8} />
+                        <circle cx={x} cy={y} r={r + 3} fill={color} opacity={0.2} />
+                      </g>
+                    )
+                  })}
+                  <text x="200" y="490" textAnchor="middle" fill="#555" fontSize="10">Colombia — SECOP II</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">Mostrando {visible.length} de {all.length} contratos</p>
+
+          <div className="space-y-2">
+            {visible.map((c, i) => {
+              const risk = getRiskLevel(c)
+              return (
+                <div key={i} className={`rounded-lg border bg-card px-4 py-2.5 mx-2 transition-colors hover:border-primary/30 ${
+                  risk === 'ALTO' ? 'border-risk-high/30' : risk === 'MEDIO' ? 'border-yellow-500/20' : 'border-border'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <RiskBadge level={risk} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{c.nombre_entidad || '—'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{c.descripcion_del_proceso || 'Sin descripción'}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-mono font-semibold">{formatCOP(c.valor_del_contrato)}</p>
+                      <p className="text-xs text-muted-foreground">{c.estado_contrato || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {visible.length < all.length && (
+            <div className="text-center pt-2">
+              <button onClick={() => setPage(p => p + 1)}
+                className="rounded-lg border border-border px-6 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+                Ver más ({all.length - visible.length} restantes)
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {!searched && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Building2 className="size-12 text-muted-foreground/20 mb-4" />
+          <p className="text-sm text-muted-foreground">Ingresa el nombre de una entidad para consultar sus contratos</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Fuente: datos.gov.co — SECOP II en tiempo real</p>
+        </div>
+      )}
     </div>
   )
 }

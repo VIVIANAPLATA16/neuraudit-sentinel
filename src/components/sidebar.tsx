@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/watchlist', label: 'Watchlist', icon: Eye },
-  { href: '/alertas', label: 'Alertas', icon: Bell, badge: 37 },
+  { href: '/alertas', label: 'Alertas', icon: Bell, badge: 0 },
   { href: '/investigar', label: 'Investigar', icon: Search },
   { href: '/configuracion', label: 'Configuración', icon: Settings },
 ]
