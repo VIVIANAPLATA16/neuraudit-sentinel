@@ -18,21 +18,21 @@ export async function query<T = Record<string, unknown>>(
   params?: unknown[]
 ): Promise<T[]> {
   const token = await getToken()
-  const pool = new Pool({
+  const client = new Pool({
     host: process.env.DSQL_ENDPOINT,
     port: 5432,
     database: "postgres",
     user: "admin",
     password: token,
-    ssl: { rejectUnauthorized: false },
+    ssl: true,
     max: 1,
     connectionTimeoutMillis: 15000,
   })
   try {
-    const result = await pool.query(text, params)
+    const result = await client.query(text, params)
     return result.rows as T[]
   } finally {
-    await pool.end()
+    await client.end()
   }
 }
 
