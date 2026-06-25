@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server"
-import { DsqlSigner } from "@aws-sdk/dsql-signer"
-import { Client } from "pg"
+import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts"
 
 export async function GET() {
   try {
-    const endpoint = process.env.DSQL_ENDPOINT!
-    const signer = new DsqlSigner({
-      hostname: endpoint,
+    const sts = new STSClient({
       region: process.env.DSQL_REGION || "us-east-1",
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
@@ -14,24 +11,23 @@ export async function GET() {
       },
     })
 
-    const token = await signer.getDbConnectAdminAuthToken()
+    const identity = await sts.send(new GetCallerIdentityCommand({}))
 
-    const client = new Client({
-      host: endpoint,
-      port: 5432,
-      database: "postgres",
-      user: "admin",
-      password: token,
-      ssl: true,
-      connectionTimeoutMillis: 15000,
+    return NextResponse.json({
+      endpoint: process.env.DSQL_ENDPOINT,
+      region: process.env.DSQL_REGION,
+      accessKeyLast4: process.env.AWS_ACCESS_KEY_ID?.slice(-4),
+      arn: identity.Arn,
+      account: identity.Account,
+      userId: identity.UserId,
     })
-
-    await client.connect()
-    const result = await client.query("SELECT NOW()")
-    await client.end()
-
-    return NextResponse.json({ success: true, now: result.rows[0] })
   } catch (error) {
-    return NextResponse.json({ success: false, error: String(error) }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: String(error),
+      },
+      { status: 500 }
+    )
   }
 }
