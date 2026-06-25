@@ -1,42 +1,39 @@
 import { Pool } from "pg"
+import { DsqlSigner } from "@aws-sdk/dsql-signer"
 
-declare global {
-  var __sentinelPool: Pool | undefined
-}
-
-function createPool(): Pool {
-  const connectionString = process.env.DATABASE_URL || 
-    `postgresql://${process.env.AURORA_USER}:${process.env.AURORA_PASSWORD}@${process.env.AURORA_HOST}:${process.env.AURORA_PORT}/${process.env.AURORA_DATABASE}`
-
-  const pool = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-    max: 5,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 15000,
+async function getToken(): Promise<string> {
+  const signer = new DsqlSigner({
+    hostname: process.env.DSQL_ENDPOINT!,
+    region: process.env.DSQL_REGION || "us-east-1",
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
   })
-
-  pool.on("error", (err) => {
-    console.error("[Sentinel] Error:", err.message)
-  })
-
-  return pool
-}
-
-export function getPool(): Pool {
-  if (!global.__sentinelPool) {
-    global.__sentinelPool = createPool()
-  }
-  return global.__sentinelPool
+  return signer.getDbConnectAdminAuthToken()
 }
 
 export async function query<T = Record<string, unknown>>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const pool = getPool()
-  const result = await pool.query(text, params)
-  return result.rows as T[]
+  const token = await getToken()
+  const pool = new Pool({
+    host: process.env.DSQL_ENDPOINT,
+    port: 5432,
+    database: "postgres",
+    user: "admin",
+    password: token,
+    ssl: { rejectUnauthorized: false },
+    max: 1,
+    connectionTimeoutMillis: 15000,
+  })
+  try {
+    const result = await pool.query(text, params)
+    return result.rows as T[]
+  } finally {
+    await pool.end()
+  }
 }
 
 export async function isAuroraReachable(): Promise<boolean> {
