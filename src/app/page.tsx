@@ -1,3 +1,5 @@
+export const revalidate = 0
+
 import { query } from "@/lib/db"
 import { PageHeader } from "@/components/page-header"
 import { RiskBadge } from "@/components/risk-badge"
