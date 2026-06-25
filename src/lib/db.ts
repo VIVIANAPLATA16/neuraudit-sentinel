@@ -1,11 +1,7 @@
 import { Pool } from "pg"
 import { Signer } from "@aws-sdk/rds-signer"
 
-declare global {
-  var __sentinelPool: Pool | undefined
-}
-
-async function createPool(): Promise<Pool> {
+async function getToken(): Promise<string> {
   const signer = new Signer({
     region: process.env.AURORA_REGION || "us-east-1",
     hostname: process.env.AURORA_HOST!,
@@ -16,9 +12,14 @@ async function createPool(): Promise<Pool> {
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
     },
   })
+  return signer.getAuthToken()
+}
 
-  const token = await signer.getAuthToken()
-
+export async function query<T = Record<string, unknown>>(
+  text: string,
+  params?: unknown[]
+): Promise<T[]> {
+  const token = await getToken()
   const pool = new Pool({
     host: process.env.AURORA_HOST,
     port: Number(process.env.AURORA_PORT) || 5432,
@@ -26,32 +27,15 @@ async function createPool(): Promise<Pool> {
     user: process.env.AURORA_USER,
     password: token,
     ssl: { rejectUnauthorized: false },
-    max: 5,
-    idleTimeoutMillis: 30000,
+    max: 1,
     connectionTimeoutMillis: 15000,
   })
-
-  pool.on("error", (err) => {
-    console.error("[Sentinel] Aurora error:", err.message)
-  })
-
-  return pool
-}
-
-export async function getPool(): Promise<Pool> {
-  if (!global.__sentinelPool) {
-    global.__sentinelPool = await createPool()
+  try {
+    const result = await pool.query(text, params)
+    return result.rows as T[]
+  } finally {
+    await pool.end()
   }
-  return global.__sentinelPool
-}
-
-export async function query<T = Record<string, unknown>>(
-  text: string,
-  params?: unknown[]
-): Promise<T[]> {
-  const pool = await getPool()
-  const result = await pool.query(text, params)
-  return result.rows as T[]
 }
 
 export async function isAuroraReachable(): Promise<boolean> {
