@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Search, Building2 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { PageHeader } from '@/components/page-header'
@@ -31,13 +31,6 @@ function formatCOP(value: string | number | undefined) {
 
 const COLORS = { ALTO: '#ef4444', MEDIO: '#f59e0b', BAJO: '#22c55e' }
 
-const LOADING_STEPS = [
-  'Consultando SECOP...',
-  'Analizando contratos...',
-  'Calculando riesgo...',
-  'Generando visualizaciones...',
-]
-
 const DEPARTAMENTOS: Record<string, [number, number]> = {
   'CUNDINAMARCA': [4.6, -74.1], 'BOGOTA': [4.7, -74.07], 'ANTIOQUIA': [6.25, -75.56],
   'VALLE DEL CAUCA': [3.45, -76.53], 'SANTANDER': [6.64, -73.13], 'BOLIVAR': [9.0, -74.0],
@@ -52,29 +45,13 @@ const DEPARTAMENTOS: Record<string, [number, number]> = {
   'AMAZONAS': [-1.44, -71.57], 'CAQUETA': [1.61, -75.61], 'GUAINIA': [2.58, -68.53],
 }
 
-const DEPARTMENT_KEYS = Object.keys(DEPARTAMENTOS)
-
-function normalizeText(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    .replace(/\s+/g, ' ')
-}
-
 function getDeptoFromEntity(nombre: string): string {
-  const n = normalizeText(nombre)
-  for (const dep of DEPARTMENT_KEYS) {
-    if (n.includes(normalizeText(dep))) return dep
+  const n = nombre.toUpperCase()
+  for (const dep of Object.keys(DEPARTAMENTOS)) {
+    if (n.includes(dep)) return dep
   }
-  if (n.includes('bogota') || n.includes('sede nacional')) return 'BOGOTA'
+  if (n.includes('BOGOTA') || n.includes('BOGOTÁ') || n.includes('SEDE NACIONAL')) return 'BOGOTA'
   return ''
-}
-
-function getDepartmentKey(c: Contrato) {
-  return getDeptoFromEntity(c.departamento || '') || getDeptoFromEntity(c.nombre_entidad || '')
 }
 
 const PAGE_SIZE = 15
@@ -84,54 +61,25 @@ export default function InvestigarPage() {
   const [all, setAll] = useState<Contrato[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [loadingStep, setLoadingStep] = useState(0)
   const [page, setPage] = useState(1)
-  const loadingLockRef = useRef(false)
-
-  useEffect(() => {
-    if (!loading) {
-      setLoadingStep(0)
-      return
-    }
-
-    const interval = window.setInterval(() => {
-      setLoadingStep(step => (step + 1) % LOADING_STEPS.length)
-    }, 2800)
-
-    return () => window.clearInterval(interval)
-  }, [loading])
 
   async function handleSearch(query?: string) {
-    if (loadingLockRef.current) return
-
-    const term = (query || q).trim()
-    if (!term) return
-
+    const term = query || q
+    if (!term.trim()) return
     if (query) setQ(query)
-    loadingLockRef.current = true
-    setAll([])
-    setLoadingStep(0)
     setLoading(true)
     setSearched(true)
     setPage(1)
-    try {
-      const res = await fetch('/api/investigar?q=' + encodeURIComponent(term))
-      const data = await res.json()
-      if (data.success) {
-        const sorted = data.data.sort((a: Contrato, b: Contrato) => {
-          const order: Record<RiskLevel, number> = { ALTO: 0, MEDIO: 1, BAJO: 2 }
-          return order[getRiskLevel(a)] - order[getRiskLevel(b)]
-        })
-        setAll(sorted)
-      } else {
-        setAll([])
-      }
-    } catch {
-      setAll([])
-    } finally {
-      setLoading(false)
-      loadingLockRef.current = false
+    const res = await fetch('/api/investigar?q=' + encodeURIComponent(term))
+    const data = await res.json()
+    if (data.success) {
+      const sorted = data.data.sort((a: Contrato, b: Contrato) => {
+        const order: Record<RiskLevel, number> = { ALTO: 0, MEDIO: 1, BAJO: 2 }
+        return order[getRiskLevel(a)] - order[getRiskLevel(b)]
+      })
+      setAll(sorted)
     }
+    setLoading(false)
   }
 
   const alto = all.filter(c => getRiskLevel(c) === 'ALTO')
@@ -147,7 +95,7 @@ export default function InvestigarPage() {
 
   const deptoMap: Record<string, { alto: number, medio: number, bajo: number, total: number }> = {}
   all.forEach(c => {
-    const dep = getDepartmentKey(c)
+    const dep = getDeptoFromEntity(c.nombre_entidad || '')
     if (!dep) return
     if (!deptoMap[dep]) deptoMap[dep] = { alto: 0, medio: 0, bajo: 0, total: 0 }
     const risk = getRiskLevel(c)
@@ -155,11 +103,10 @@ export default function InvestigarPage() {
     deptoMap[dep].total++
   })
 
-  const deptoEntries = Object.entries(deptoMap).sort((a, b) => b[1].total - a[1].total)
   const visible = all.slice(0, page * PAGE_SIZE)
 
   return (
-    <div className={`space-y-4 ${loading ? 'cursor-wait' : ''}`} aria-busy={loading}>
+    <div className="space-y-4">
       <PageHeader
         title="Investigar"
         subtitle="Contratos públicos en tiempo real — SECOP II"
@@ -172,63 +119,53 @@ export default function InvestigarPage() {
           <input value={q} onChange={e => setQ(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
             placeholder="Buscar entidad en SECOP II..."
-            disabled={loading}
-            className="w-full rounded-lg border border-border bg-card py-2.5 pl-9 pr-4 text-sm outline-none transition-colors focus:border-primary disabled:cursor-wait disabled:opacity-70" />
+            className="w-full rounded-lg border border-border bg-card py-2.5 pl-9 pr-4 text-sm outline-none focus:border-primary" />
         </div>
         <button onClick={() => handleSearch()} disabled={loading}
-          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-50">
-          {loading ? 'Consultando...' : 'Analizar →'}
+          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+          {loading ? 'Buscando...' : 'Analizar →'}
         </button>
       </div>
 
       <div className="flex gap-2 flex-wrap">
         {['ICBF', 'Min. Transporte', 'Alcaldía Medellín', 'UNGRD', 'Invías'].map(e => (
           <button key={e} onClick={() => handleSearch(e)}
-            disabled={loading}
-            className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-wait disabled:opacity-50">
+            className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors">
             {e}
           </button>
         ))}
       </div>
 
       {loading && (
-        <div className="rounded-2xl border border-border bg-card/70 px-6 py-10 shadow-lg shadow-black/10 backdrop-blur-sm" style={{ animation: 'investigar-fade-in 220ms ease-out' }}>
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative h-16 w-16">
-              <div className="absolute inset-0 rounded-full border-4 border-muted/80"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent" style={{ animation: 'investigar-spin 0.9s linear infinite' }}></div>
-              <div className="absolute inset-3 rounded-full border border-primary/30 bg-primary/5"></div>
-            </div>
+  <div className="flex flex-col items-center justify-center py-16">
 
-            <h3 className="mt-6 text-lg font-semibold text-foreground">
-              Consultando SECOP II...
-            </h3>
+    <div className="relative h-16 w-16">
+      <div className="absolute inset-0 rounded-full border-4 border-muted"></div>
 
-            <p className="mt-2 text-center text-sm text-muted-foreground max-w-md">
-              Analizando contratos públicos. Esto puede tardar entre 10 y 30 segundos.
-            </p>
+      <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+    </div>
 
-            <p className="mt-3 text-center text-sm font-medium text-primary">
-              {LOADING_STEPS[loadingStep]}
-            </p>
+    <h3 className="mt-6 text-lg font-semibold">
+      Consultando SECOP II...
+    </h3>
 
-            <div className="mt-6 w-full max-w-md overflow-hidden rounded-full bg-muted/80">
-              <div className="h-2 w-2/3 rounded-full bg-gradient-to-r from-transparent via-primary/80 to-transparent" style={{ animation: 'investigar-shimmer 1.8s ease-in-out infinite' }} />
-            </div>
+    <p className="mt-2 text-center text-sm text-muted-foreground max-w-md">
+      Analizando contratos públicos. Esto puede tardar entre 10 y 30 segundos.
+    </p>
 
-            <p className="mt-3 text-center text-xs text-muted-foreground/80">
-              La consulta sigue ejecutándose mientras preparamos los resultados.
-            </p>
-          </div>
-        </div>
-      )}
+    <div className="mt-6 w-80 h-2 overflow-hidden rounded-full bg-muted">
+      <div className="h-full w-1/3 animate-pulse rounded-full bg-primary"></div>
+    </div>
+
+  </div>
+)}
 
       {!loading && searched && all.length === 0 && (
         <EmptyState icon={Building2} title="Sin resultados" description="No se encontraron contratos" />
       )}
 
       {!loading && all.length > 0 && (
-        <div className="space-y-4" style={{ animation: 'investigar-fade-in 260ms ease-out' }}>
+        <>
           <div className="grid grid-cols-4 gap-3">
             {[
               { label: 'Riesgo ALTO', value: alto.length, color: 'text-risk-high', border: 'border-risk-high/30', bg: 'bg-risk-high/5' },
@@ -263,32 +200,25 @@ export default function InvestigarPage() {
 
             <div className="rounded-xl border border-border bg-card p-4">
               <h3 className="text-sm font-semibold mb-3">Distribución por departamento</h3>
-              <div className="space-y-3 rounded-lg border border-border bg-background/40 p-3">
-                {deptoEntries.length > 0 ? (
-                  deptoEntries.map(([dep, info]) => {
-                    const riskLevel = info.alto > 0 ? 'ALTO' : info.medio > 0 ? 'MEDIO' : 'BAJO'
-                    const width = `${Math.max(12, (info.total / deptoEntries[0][1].total) * 100)}%`
+              <div className="relative w-full h-[220px] bg-[#060610] rounded-lg overflow-hidden">
+                <svg viewBox="0 0 400 500" className="w-full h-full">
+                  <rect width="400" height="500" fill="#060610" />
+                  {Object.entries(deptoMap).map(([dep, info]) => {
+                    const coords = DEPARTAMENTOS[dep]
+                    if (!coords) return null
+                    const x = ((coords[1] + 82) / 18) * 400
+                    const y = ((8 - coords[0]) / 16) * 500
+                    const color = info.alto > 0 ? '#ef4444' : info.medio > 0 ? '#f59e0b' : '#22c55e'
+                    const r = Math.min(4 + info.total * 1.5, 20)
                     return (
-                      <div key={dep} className="space-y-1">
-                        <div className="flex items-center justify-between gap-3 text-xs">
-                          <span className="min-w-0 flex-1 truncate font-medium text-foreground">{dep}</span>
-                          <span className="shrink-0 text-muted-foreground">{info.total} contratos</span>
-                          <span className={`shrink-0 rounded-full px-2 py-0.5 font-semibold ${riskLevel === 'ALTO' ? 'bg-risk-high/10 text-risk-high' : riskLevel === 'MEDIO' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-risk-low/10 text-risk-low'}`}>
-                            {riskLevel}
-                          </span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-muted/80">
-                          <div
-                            className={`h-full rounded-full ${riskLevel === 'ALTO' ? 'bg-risk-high' : riskLevel === 'MEDIO' ? 'bg-yellow-500' : 'bg-risk-low'}`}
-                            style={{ width }}
-                          />
-                        </div>
-                      </div>
+                      <g key={dep}>
+                        <circle cx={x} cy={y} r={r} fill={color} opacity={0.8} />
+                        <circle cx={x} cy={y} r={r + 3} fill={color} opacity={0.2} />
+                      </g>
                     )
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground">No hay datos de departamento para esta consulta.</p>
-                )}
+                  })}
+                  <text x="200" y="490" textAnchor="middle" fill="#555" fontSize="10">Colombia — SECOP II</text>
+                </svg>
               </div>
             </div>
           </div>
@@ -326,7 +256,7 @@ export default function InvestigarPage() {
               </button>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {!searched && (
@@ -336,34 +266,6 @@ export default function InvestigarPage() {
           <p className="text-xs text-muted-foreground/60 mt-1">Fuente: datos.gov.co — SECOP II en tiempo real</p>
         </div>
       )}
-
-      <style jsx global>{`
-        @keyframes investigar-spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes investigar-shimmer {
-          0% {
-            transform: translateX(-40%);
-          }
-          100% {
-            transform: translateX(40%);
-          }
-        }
-
-        @keyframes investigar-fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   )
 }
