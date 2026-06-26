@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Search, Building2 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { PageHeader } from '@/components/page-header'
+import { ColombiaMap } from '@/components/colombia-map'
 import { RiskBadge } from '@/components/risk-badge'
 import { EmptyState } from '@/components/empty-state'
 import type { RiskLevel } from '@/lib/data'
@@ -77,7 +78,7 @@ function getDepartmentKey(c: Contrato) {
   return getDeptoFromEntity(c.departamento || '') || getDeptoFromEntity(c.nombre_entidad || '')
 }
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 5
 
 export default function InvestigarPage() {
   const [q, setQ] = useState('')
@@ -182,7 +183,7 @@ export default function InvestigarPage() {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {['ICBF', 'Min. Transporte', 'Alcaldía Medellín', 'UNGRD', 'Invías'].map(e => (
+        {['ICBF', 'Min. Transporte', 'Alcaldia', 'UNGRD', 'Invías'].map(e => (
           <button key={e} onClick={() => handleSearch(e)}
             disabled={loading}
             className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-wait disabled:opacity-50">
@@ -263,6 +264,7 @@ export default function InvestigarPage() {
 
             <div className="rounded-xl border border-border bg-card p-4">
               <h3 className="text-sm font-semibold mb-3">Distribución por departamento</h3>
+              <div className="h-[300px]"><ColombiaMap data={deptoMap} /></div>
               <div className="space-y-3 rounded-lg border border-border bg-background/40 p-3">
                 {deptoEntries.length > 0 ? (
                   deptoEntries.map(([dep, info]) => {
@@ -293,7 +295,7 @@ export default function InvestigarPage() {
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">Mostrando {visible.length} de {all.length} contratos</p>
+          <p className="text-xs text-muted-foreground">Top {visible.length} contratos más críticos de {all.length} encontrados</p>
 
           <div className="space-y-2">
             {visible.map((c, i) => {
@@ -322,7 +324,7 @@ export default function InvestigarPage() {
             <div className="text-center pt-2">
               <button onClick={() => setPage(p => p + 1)}
                 className="rounded-lg border border-border px-6 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                Ver más ({all.length - visible.length} restantes)
+                Ver todos los contratos ({all.length - visible.length} restantes)
               </button>
             </div>
           )}

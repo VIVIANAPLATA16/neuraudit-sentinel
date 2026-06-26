@@ -42,7 +42,7 @@ function buildSearchTerms(query: string) {
   }
 
   if (normalized.includes('ALCALDIA MEDELLIN') || normalized.includes('ALCALDIA DE MEDELLIN') || normalized.includes('MEDELLIN')) {
-    add('Alcaldia de Medellin')
+    add('ALCALDIA')
     add('Alcaldía de Medellín')
     add('Alcaldia Medellin')
   }
